@@ -36,12 +36,24 @@ class MainActivity : FlutterActivity() {
 
         telephonyManager = getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
-        // MethodChannel for one-shot reads
+        // MethodChannel for one-shot reads and runtime permission requests
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, METHOD_CHANNEL).setMethodCallHandler { call, result ->
             when (call.method) {
                 "getSignalStrength" -> {
                     val dbm = readCurrentSignalDbm()
                     result.success(dbm)
+                }
+                "requestPermissions" -> {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        requestPermissions(
+                            arrayOf(
+                                android.Manifest.permission.ACCESS_FINE_LOCATION,
+                                android.Manifest.permission.READ_PHONE_STATE
+                            ),
+                            1001
+                        )
+                    }
+                    result.success(true)
                 }
                 else -> result.notImplemented()
             }
@@ -95,6 +107,12 @@ class MainActivity : FlutterActivity() {
     private fun startListeningSignalStrength() {
         val tm = telephonyManager ?: return
 
+        // Immediately read and emit current signal on connect
+        val currentDbm = readCurrentSignalDbm()
+        if (currentDbm in -140..-30) {
+            emitSignal(currentDbm)
+        }
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             registerTelephonyCallback(tm)
         } else {
@@ -107,7 +125,7 @@ class MainActivity : FlutterActivity() {
         val callback = object : TelephonyCallback(), TelephonyCallback.SignalStrengthsListener {
             override fun onSignalStrengthsChanged(signalStrength: SignalStrength) {
                 val dbm = parseSignalStrength(signalStrength)
-                eventSink?.success(dbm)
+                emitSignal(dbm)
             }
         }
         telephonyCallback = callback
@@ -123,7 +141,7 @@ class MainActivity : FlutterActivity() {
             override fun onSignalStrengthsChanged(signalStrength: SignalStrength?) {
                 if (signalStrength != null) {
                     val dbm = parseSignalStrength(signalStrength)
-                    eventSink?.success(dbm)
+                    emitSignal(dbm)
                 }
             }
         }
@@ -147,17 +165,38 @@ class MainActivity : FlutterActivity() {
         }
     }
 
+    private fun emitSignal(dbm: Int) {
+        if (dbm in -140..-30) {
+            runOnUiThread {
+                eventSink?.success(dbm)
+            }
+        }
+    }
+
     private fun parseSignalStrength(signalStrength: SignalStrength): Int {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            for (cellSignal in signalStrength.cellSignalStrengths) {
+            val list = signalStrength.cellSignalStrengths
+            for (cellSignal in list) {
                 val dbm = cellSignal.dbm
-                if (dbm != CellInfo.UNAVAILABLE && dbm != Integer.MAX_VALUE && dbm < 0) {
+                if (dbm != CellInfo.UNAVAILABLE && dbm != Integer.MAX_VALUE && dbm in -140..-30) {
                     return dbm
                 }
             }
         }
-        // Fallback for older versions
-        val fallbackDbm = readCurrentSignalDbm()
-        return if (fallbackDbm != -999) fallbackDbm else -85
+
+        // Primary fallback: query active registered cell info
+        val current = readCurrentSignalDbm()
+        if (current in -140..-30) {
+            return current
+        }
+
+        // Secondary fallback: legacy GSM signal strength
+        @Suppress("DEPRECATION")
+        val gsm = signalStrength.gsmSignalStrength
+        if (gsm in 0..31) {
+            return -113 + (2 * gsm) // Standard 3GPP formula: dBm = -113 + 2*asu
+        }
+
+        return -80
     }
 }

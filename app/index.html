@@ -1,0 +1,1048 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Signal Sweet-Spot Finder - MSI Cyborg HUD</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700;800;900&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-chassis: #0b0c10;
+      --bg-panel-dark: #121317;
+      --bg-panel-mid: #1a1c22;
+      --cyan-glow: #00e5ff;
+      --amber-glow: #ff9100;
+      --hot-glow: #ff2a54;
+      --magenta-glow: #d500f9;
+      --tier-color: var(--amber-glow);
+      --tier-secondary: #ffb300;
+      --tier-glow: rgba(255, 145, 0, 0.45);
+      --tier-sweep: rgba(255, 145, 0, 0.25);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      font-family: 'Orbitron', -apple-system, sans-serif;
+      background: radial-gradient(circle at 50% 12%, #1b1c24 0%, #0c0d11 60%, #060709 100%);
+      min-height: 100vh;
+      color: #9ca3af;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      overflow-x: hidden;
+    }
+
+    .font-digital {
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    /* Outer Mobile Device Frame */
+    .device-shell {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      height: 820px;
+      max-height: 94vh;
+      background: linear-gradient(165deg, #262832 0%, #15161b 50%, #0d0e12 100%);
+      border-radius: 44px;
+      padding: 3px;
+      box-shadow: 
+        0 25px 60px rgba(0, 0, 0, 0.95),
+        0 0 0 1px #2e313b,
+        inset 0 1px 2px rgba(255, 255, 255, 0.18);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .device-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(180deg, #181920 0%, #101115 55%, #0a0b0d 100%);
+      border-radius: 41px;
+      padding: 16px 18px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      overflow: hidden;
+    }
+
+    /* Tech watermark SVG background */
+    .tech-watermark {
+      position: absolute;
+      inset: 0;
+      width: 320px;
+      height: 320px;
+      margin: auto;
+      opacity: 0.035;
+      pointer-events: none;
+      z-index: 1;
+    }
+
+    /* Sharp diagonal smoked glass glare */
+    .diagonal-glare {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        158deg,
+        rgba(255, 255, 255, 0.12) 0%,
+        rgba(255, 255, 255, 0.04) 43%,
+        rgba(255, 255, 255, 0.08) 52.8%,
+        transparent 53.1%,
+        rgba(0, 0, 0, 0.45) 53.2%,
+        rgba(0, 0, 0, 0.72) 100%
+      );
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Corner Hex Rivets */
+    .chassis-bolt {
+      position: absolute;
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, #3a3e4b 0%, #17181f 75%, #0a0b0f 100%);
+      border: 1px solid #090a0d;
+      box-shadow: 0 1px 0 rgba(255, 255, 255, 0.12), inset 0 1px 2px rgba(0, 0, 0, 0.9);
+      z-index: 25;
+    }
+    .bolt-tl { top: 12px; left: 14px; }
+    .bolt-tr { top: 12px; right: 14px; }
+    .bolt-bl { bottom: 12px; left: 14px; }
+    .bolt-br { bottom: 12px; right: 14px; }
+
+    /* Top Trapezoidal Dynamic Notch */
+    .notch-wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      margin-top: -6px;
+      margin-bottom: 8px;
+    }
+
+    .notch-border {
+      width: 172px;
+      height: 28px;
+      background: linear-gradient(90deg, var(--cyan-glow) 0%, #3a3d46 25%, #3a3d46 75%, var(--magenta-glow) 100%);
+      clip-path: polygon(0 0, 100% 0, 84% 100%, 16% 100%);
+      padding: 0 1.5px 1.5px 1.5px;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.8));
+    }
+
+    .notch-inner {
+      width: 100%;
+      height: 100%;
+      background: #0f1014;
+      clip-path: polygon(0 0, 100% 0, 83.5% 100%, 16.5% 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 16px;
+    }
+
+    .notch-label {
+      font-size: 9.5px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #e5e7eb;
+    }
+
+    .notch-sensors {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .notch-led {
+      width: 6.5px;
+      height: 6.5px;
+      border-radius: 50%;
+      background: var(--tier-color);
+      box-shadow: 0 0 6px var(--tier-color);
+      animation: pulse 1.6s ease-in-out infinite alternate;
+    }
+
+    .notch-lens {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #141722;
+      border: 1px solid #374151;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .notch-lens-core {
+      width: 3px;
+      height: 3px;
+      border-radius: 50%;
+      background: var(--cyan-glow);
+    }
+
+    /* Top Status Bar */
+    .top-header {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .brand-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .signal-bars {
+      display: flex;
+      align-items: flex-end;
+      gap: 2.5px;
+      height: 14px;
+    }
+    .signal-bar {
+      width: 3px;
+      background: #374151;
+      border-radius: 1px;
+      transition: all 0.25s ease;
+    }
+    .bar-1 { height: 5px; }
+    .bar-2 { height: 8px; }
+    .bar-3 { height: 11px; }
+    .bar-4 { height: 14px; }
+
+    .brand-title {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #f3f4f6;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .band-pill {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--cyan-glow);
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(0, 229, 255, 0.45);
+      border-radius: 4px;
+      padding: 2px 7px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .band-pill:hover {
+      background: rgba(0, 229, 255, 0.15);
+    }
+
+    .beacon-dot-wrapper {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: rgba(0, 0, 0, 0.6);
+      border: 1px solid rgba(75, 85, 99, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .beacon-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--tier-color);
+      box-shadow: 0 0 8px var(--tier-color);
+      transition: all 0.3s ease;
+    }
+
+    /* Radar Area */
+    .radar-container {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: auto 0;
+      cursor: crosshair;
+    }
+
+    .radar-outer-ring {
+      position: relative;
+      width: 276px;
+      height: 276px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 50% 50%, #15161c 0%, #0d0e13 70%, #07080a 100%);
+      border: 2px solid var(--tier-color);
+      box-shadow: 
+        0 0 28px var(--tier-glow),
+        inset 0 4px 18px rgba(0, 0, 0, 0.95);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .radar-graticule {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    /* Rotating Radar Sweep Cone */
+    .radar-sweep-cone {
+      position: absolute;
+      inset: 2px;
+      border-radius: 50%;
+      background: conic-gradient(
+        from 0deg,
+        transparent 0deg,
+        transparent 280deg,
+        var(--tier-sweep) 345deg,
+        var(--tier-color) 360deg
+      );
+      animation: radarRotate 3.2s linear infinite;
+      pointer-events: none;
+    }
+
+    @keyframes radarRotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .radar-middle-ring {
+      position: relative;
+      width: 212px;
+      height: 212px;
+      border-radius: 50%;
+      background: linear-gradient(155deg, rgba(38, 41, 50, 0.7) 0%, rgba(20, 22, 28, 0.85) 50%, rgba(10, 11, 14, 0.95) 100%);
+      border: 1.8px solid var(--tier-color);
+      box-shadow: 0 0 20px var(--tier-glow), inset 0 2px 6px rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .radar-inner-core {
+      position: relative;
+      width: 136px;
+      height: 136px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 40% 35%, #2a2c36 0%, #15161b 60%, #0d0e12 100%);
+      border: 1.8px solid var(--tier-secondary);
+      box-shadow: 0 0 22px var(--tier-glow), inset 0 2px 8px rgba(0, 0, 0, 0.9);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    /* Direction vector pill at top of radar */
+    .vector-badge {
+      position: absolute;
+      top: 14px;
+      background: rgba(0, 0, 0, 0.75);
+      border: 1px solid #374151;
+      border-radius: 12px;
+      padding: 2px 8px;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9.5px;
+      color: #e5e7eb;
+      letter-spacing: 0.5px;
+      z-index: 5;
+    }
+    .vector-arrow {
+      color: var(--tier-color);
+      transition: transform 0.3s ease, color 0.3s ease;
+    }
+
+    /* Peak Lock status at bottom of radar */
+    .peak-lock-label {
+      position: absolute;
+      bottom: 14px;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 1.2px;
+      color: var(--tier-color);
+      opacity: 0.85;
+      z-index: 5;
+    }
+
+    /* Lateral WARM / HOT badges */
+    .label-warm {
+      position: absolute;
+      left: 12px;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      color: #6b7280;
+      transition: all 0.25s ease;
+    }
+    .label-hot {
+      position: absolute;
+      right: 12px;
+      font-size: 8.5px;
+      font-weight: 800;
+      letter-spacing: 1.6px;
+      color: var(--tier-color);
+      text-shadow: 0 0 6px var(--tier-glow);
+      transition: all 0.25s ease;
+    }
+
+    /* Target blip orbiting and seeking center */
+    .target-blip {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan-glow);
+      border: 1.5px solid #ffffff;
+      box-shadow: 0 0 10px var(--cyan-glow);
+      transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.3, 1);
+      z-index: 6;
+    }
+
+    /* Central sun focal pin with ping ripples */
+    .center-focal-node {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 5;
+    }
+
+    .node-outer-halo {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: rgba(255, 145, 0, 0.2);
+      border: 1px solid var(--tier-color);
+      box-shadow: 0 0 14px var(--tier-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.3s ease;
+    }
+
+    .node-inner-pin {
+      width: 14px;
+      height: 14px;
+      border-radius: 50%;
+      background: var(--tier-color);
+      border: 2px solid #ffffff;
+      box-shadow: 0 0 10px var(--tier-color);
+      transition: all 0.3s ease;
+    }
+
+    .node-ping-ring {
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      border: 1.5px solid var(--tier-color);
+      animation: pingRipple 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+      pointer-events: none;
+    }
+
+    @keyframes pingRipple {
+      0% { transform: scale(0.9); opacity: 0.9; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    /* Signal Temperature Section */
+    .temperature-section {
+      position: relative;
+      z-index: 10;
+      text-align: center;
+      margin-bottom: 8px;
+    }
+
+    .temp-label {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 2.4px;
+      color: #9ca3af;
+      margin-bottom: 2px;
+    }
+
+    .temp-headline {
+      font-size: 22px;
+      font-weight: 900;
+      letter-spacing: 0.8px;
+      color: #ffffff;
+      text-shadow: 0 0 14px var(--tier-glow);
+      transition: all 0.25s ease;
+    }
+
+    /* Recessed LED Meter Panel */
+    .recessed-meter {
+      display: inline-flex;
+      align-items: center;
+      background: #0f1014;
+      border: 1px solid #232630;
+      border-radius: 6px;
+      padding: 6px 12px;
+      margin-top: 6px;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9);
+      gap: 10px;
+    }
+
+    .led-bar {
+      display: flex;
+      gap: 2.5px;
+      align-items: center;
+    }
+    .led-segment {
+      width: 7px;
+      height: 4px;
+      border-radius: 1px;
+      background: #1c1e26;
+      transition: all 0.2s ease;
+    }
+
+    .meter-divider {
+      width: 1px;
+      height: 12px;
+      background: #374151;
+    }
+
+    .dbm-readout {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--tier-color);
+      letter-spacing: 0.5px;
+      min-width: 65px;
+      text-align: right;
+    }
+
+    .peak-tag {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9px;
+      color: #6b7280;
+      background: #1a1c24;
+      padding: 1.5px 5px;
+      border-radius: 3px;
+    }
+
+    /* Telemetry Grid: PING / LINK / SNR */
+    .telemetry-grid {
+      position: relative;
+      z-index: 10;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      margin-bottom: 12px;
+    }
+
+    .telemetry-card {
+      background: #12141a;
+      border: 1px solid #232630;
+      border-radius: 6px;
+      padding: 6px 9px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .tel-label {
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: #9ca3af;
+    }
+    .tel-value {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      font-weight: 700;
+      color: #ffffff;
+    }
+    .tel-unit {
+      font-size: 8.5px;
+      color: #6b7280;
+      margin-left: 1px;
+    }
+
+    /* Bottom Chamfered Action Dock */
+    .haptic-dock {
+      position: relative;
+      z-index: 10;
+      background: linear-gradient(155deg, rgba(44, 48, 56, 0.7) 0%, rgba(24, 26, 32, 0.8) 50%, rgba(12, 13, 17, 0.95) 100%);
+      clip-path: polygon(
+        12px 0, calc(100% - 12px) 0,
+        100% 12px, 100% calc(100% - 12px),
+        calc(100% - 12px) 100%, 12px 100%,
+        0 calc(100% - 12px), 0 12px
+      );
+      border: 1px solid rgba(156, 163, 175, 0.3);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+    }
+
+    .haptic-info {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .haptic-bar {
+      width: 3px;
+      height: 32px;
+      border-radius: 2px;
+      background: var(--tier-color);
+      box-shadow: 0 0 8px var(--tier-color);
+      transition: all 0.25s ease;
+    }
+    .haptic-title {
+      font-size: 11.5px;
+      font-weight: 900;
+      letter-spacing: 1.8px;
+      color: #ffffff;
+    }
+    .haptic-status {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 3px;
+    }
+    .haptic-dot {
+      width: 5px;
+      height: 5px;
+      border-radius: 50%;
+      background: var(--tier-color);
+    }
+    .haptic-text {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 9.5px;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--tier-color);
+      transition: color 0.25s ease;
+    }
+
+    /* Tactile Toggle Switch */
+    .tactile-switch {
+      position: relative;
+      width: 74px;
+      height: 38px;
+      border-radius: 20px;
+      background: #0d0e12;
+      border: 1px solid #2b2e38;
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.9);
+      cursor: pointer;
+      padding: 3px;
+      transition: all 0.25s ease;
+    }
+
+    .switch-thumb {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 30%, var(--tier-color) 0%, var(--tier-secondary) 100%);
+      box-shadow: 0 0 10px var(--tier-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transform: translateX(36px);
+      transition: transform 0.24s cubic-bezier(0.34, 1.4, 0.64, 1), background 0.3s ease;
+    }
+
+    .power-icon {
+      width: 16px;
+      height: 16px;
+      color: #0b0c10;
+    }
+
+    /* Switch Inactive state */
+    .switch-off .switch-thumb {
+      transform: translateX(0px);
+      background: radial-gradient(circle at 35% 30%, #4b4f5c 0%, #1e2027 100%);
+      box-shadow: none;
+    }
+    .switch-off .power-icon {
+      color: #9ca3af;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- MOBILE DEVICE CHASSIS -->
+  <div class="device-shell">
+    <div class="device-inner">
+
+      <!-- Diagonal Smoked-Glass Glare -->
+      <div class="diagonal-glare"></div>
+
+      <!-- Tech Watermark Geometry -->
+      <svg class="tech-watermark" viewBox="0 0 200 200" fill="none">
+        <polygon points="100,10 180,55 180,145 100,190 20,145 20,55" stroke="#ffffff" stroke-width="2.5"/>
+        <circle cx="100" cy="100" r="64" stroke="#ffffff" stroke-width="1.8" stroke-dasharray="6 4"/>
+        <line x1="100" y1="20" x2="100" y2="180" stroke="#ffffff" stroke-width="1.2"/>
+        <line x1="20" y1="100" x2="180" y2="100" stroke="#ffffff" stroke-width="1.2"/>
+      </svg>
+
+      <!-- 4 Corner Hex Rivets -->
+      <div class="chassis-bolt bolt-tl"></div>
+      <div class="chassis-bolt bolt-tr"></div>
+      <div class="chassis-bolt bolt-bl"></div>
+      <div class="chassis-bolt bolt-br"></div>
+
+      <!-- TOP SECTION: TRAPEZOIDAL CYBER NOTCH -->
+      <div class="notch-wrapper">
+        <div class="notch-border">
+          <div class="notch-inner">
+            <span class="notch-label">MSI // RF</span>
+            <div class="notch-sensors">
+              <div id="notchLed" class="notch-led"></div>
+              <div class="notch-lens">
+                <div class="notch-lens-core"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP HEADER BAR -->
+      <div class="top-header">
+        <div class="brand-group">
+          <div class="signal-bars" id="signalBars">
+            <div class="signal-bar bar-1"></div>
+            <div class="signal-bar bar-2"></div>
+            <div class="signal-bar bar-3"></div>
+            <div class="signal-bar bar-4"></div>
+          </div>
+          <span class="brand-title">THERMAL SIGNAL</span>
+        </div>
+
+        <div class="header-actions">
+          <button class="band-pill" id="bandBtn">5G ULTRA</button>
+          <div class="beacon-dot-wrapper">
+            <div class="beacon-dot" id="beaconDot"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CENTER RADAR & PROXIMITY DIAL -->
+      <div class="radar-container" id="radarDial" title="Click or tap radar to cycle signal strength">
+        <div class="radar-outer-ring" id="radarOuter">
+
+          <!-- Precision SVG Graticule & Degree Scale -->
+          <svg class="radar-graticule" viewBox="0 0 280 280">
+            <line x1="140" y1="8" x2="140" y2="272" stroke="#4b5563" stroke-width="0.8" stroke-dasharray="3 3"/>
+            <line x1="8" y1="140" x2="272" y2="140" stroke="#4b5563" stroke-width="0.8" stroke-dasharray="3 3"/>
+            <circle cx="140" cy="140" r="130" fill="none" stroke="#6b7280" stroke-width="1.2" stroke-dasharray="2 7"/>
+            <circle cx="140" cy="140" r="98" fill="none" stroke="#4b5563" stroke-width="0.8" stroke-dasharray="4 4"/>
+          </svg>
+
+          <!-- Rotating Radar Sweep Cone -->
+          <div class="radar-sweep-cone" id="radarSweep"></div>
+
+          <!-- Middle Ring -->
+          <div class="radar-middle-ring" id="radarMiddle">
+            <!-- Vector Direction Readout -->
+            <div class="vector-badge">
+              <span id="vectorArrow" class="vector-arrow">▲</span>
+              <span id="vectorText">1.9m NE</span>
+            </div>
+
+            <!-- Peak Lock Metric -->
+            <span class="peak-lock-label" id="peakLockText">PEAK LOCK: 55%</span>
+
+            <!-- Lateral Warm / Hot Markers -->
+            <span class="label-warm" id="labelWarm">WARM</span>
+            <span class="label-hot" id="labelHot">HOT</span>
+
+            <!-- Inner Core -->
+            <div class="radar-inner-core" id="radarInner">
+              <!-- Orbiting/Seeking Target Blip -->
+              <div class="target-blip" id="targetBlip" style="transform: translate(18px, -12px);"></div>
+
+              <!-- Center Sun Focal Pin -->
+              <div class="center-focal-node">
+                <div class="node-ping-ring" id="pingRing"></div>
+                <div class="node-outer-halo">
+                  <div class="node-inner-pin"></div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+      <!-- SIGNAL TEMPERATURE & HEADLINE -->
+      <div class="temperature-section">
+        <div class="temp-label">SIGNAL TEMPERATURE</div>
+        <div class="temp-headline" id="statusHeadline">GETTING WARMER</div>
+
+        <!-- Recessed Segmented LED dBm Meter -->
+        <div class="recessed-meter">
+          <div class="led-bar" id="ledBar"></div>
+          <div class="meter-divider"></div>
+          <div class="dbm-readout" id="dbmText">-68 dBm</div>
+          <span class="peak-tag" id="peakTag">PEAK: -64</span>
+        </div>
+      </div>
+
+      <!-- TELEMETRY METRICS GRID -->
+      <div class="telemetry-grid">
+        <div class="telemetry-card">
+          <span class="tel-label">PING</span>
+          <span class="tel-value"><span id="telPing">49</span><span class="tel-unit">ms</span></span>
+        </div>
+        <div class="telemetry-card">
+          <span class="tel-label">LINK</span>
+          <span class="tel-value" style="color: var(--cyan-glow);"><span id="telLink">296</span><span class="tel-unit">Mb</span></span>
+        </div>
+        <div class="telemetry-card">
+          <span class="tel-label">SNR</span>
+          <span class="tel-value"><span id="telSnr">24</span><span class="tel-unit">dB</span></span>
+        </div>
+      </div>
+
+      <!-- BOTTOM ACTION DOCK -->
+      <div class="haptic-dock">
+        <div class="haptic-info">
+          <div class="haptic-bar" id="hapticBar"></div>
+          <div>
+            <div class="haptic-title">HAPTIC SCANNER</div>
+            <div class="haptic-status">
+              <div class="haptic-dot" id="hapticDot"></div>
+              <span class="haptic-text" id="hapticStatusText">ACTIVE • 1.8Hz PULSE</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Power Activation Toggle -->
+        <div class="tactile-switch" id="hapticSwitch">
+          <div class="switch-thumb">
+            <svg class="power-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round">
+              <path d="M12 2v10"/>
+              <path d="M18.36 6.64a9 9 0 1 1-12.73 0"/>
+            </svg>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    // State tiers: COLD (-96 dBm) -> WARMER (-68 dBm) -> SWEET SPOT (-42 dBm)
+    const tiers = [
+      {
+        dbm: -96,
+        headline: 'SIGNAL COLD',
+        primary: '#00e5ff',
+        secondary: '#38bdf8',
+        glow: 'rgba(0, 229, 255, 0.45)',
+        sweep: 'rgba(0, 229, 255, 0.22)',
+        bars: 1,
+        vector: '4.2m NW',
+        arrowDeg: -55,
+        lockPct: '22%',
+        blipOffset: [-38, -26],
+        ping: 88,
+        link: 74,
+        snr: 12,
+        pulseHz: '0.6Hz PULSE'
+      },
+      {
+        dbm: -68,
+        headline: 'GETTING WARMER',
+        primary: '#ff9100',
+        secondary: '#ffb300',
+        glow: 'rgba(255, 145, 0, 0.5)',
+        sweep: 'rgba(255, 145, 0, 0.25)',
+        bars: 3,
+        vector: '1.9m NE',
+        arrowDeg: 40,
+        lockPct: '55%',
+        blipOffset: [18, -12],
+        ping: 49,
+        link: 296,
+        snr: 24,
+        pulseHz: '1.8Hz PULSE'
+      },
+      {
+        dbm: -42,
+        headline: 'SWEET SPOT LOCKED',
+        primary: '#ff2a54',
+        secondary: '#ff6b00',
+        glow: 'rgba(255, 42, 84, 0.65)',
+        sweep: 'rgba(255, 42, 84, 0.32)',
+        bars: 4,
+        vector: '0.0m LOCKED',
+        arrowDeg: 0,
+        lockPct: '98%',
+        blipOffset: [2, 0],
+        ping: 18,
+        link: 780,
+        snr: 38,
+        pulseHz: 'MAX LOCK PULSE'
+      }
+    ];
+
+    let currentTierIdx = 1;
+    let hapticActive = true;
+    let currentBandIdx = 0;
+    const bands = ['5G ULTRA', 'LTE-ADV', 'SUB-6'];
+
+    // Initialize 12 LED segments
+    const ledBar = document.getElementById('ledBar');
+    const TOTAL_LEDS = 12;
+    for (let i = 0; i < TOTAL_LEDS; i++) {
+      const seg = document.createElement('div');
+      seg.className = 'led-segment';
+      ledBar.appendChild(seg);
+    }
+
+    function applyTier(tier) {
+      const root = document.documentElement;
+      root.style.setProperty('--tier-color', tier.primary);
+      root.style.setProperty('--tier-secondary', tier.secondary);
+      root.style.setProperty('--tier-glow', tier.glow);
+      root.style.setProperty('--tier-sweep', tier.sweep);
+
+      document.getElementById('statusHeadline').textContent = tier.headline;
+      document.getElementById('dbmText').textContent = `${tier.dbm} dBm`;
+      document.getElementById('vectorText').textContent = tier.vector;
+      document.getElementById('peakLockText').textContent = `PEAK LOCK: ${tier.lockPct}`;
+      document.getElementById('vectorArrow').style.transform = `rotate(${tier.arrowDeg}deg)`;
+
+      // Reposition Target Blip
+      const [bx, by] = tier.blipOffset;
+      document.getElementById('targetBlip').style.transform = `translate(${bx}px, ${by}px)`;
+
+      // Signal Bars
+      const bars = document.querySelectorAll('.signal-bar');
+      bars.forEach((bar, idx) => {
+        if (idx < tier.bars) {
+          bar.style.background = tier.primary;
+          bar.style.boxShadow = `0 0 5px ${tier.primary}`;
+        } else {
+          bar.style.background = '#374151';
+          bar.style.boxShadow = 'none';
+        }
+      });
+
+      // 12 LED segments
+      const activeLeds = Math.round((tier.bars / 4) * TOTAL_LEDS);
+      Array.from(ledBar.children).forEach((seg, idx) => {
+        if (idx < activeLeds) {
+          seg.style.background = tier.primary;
+          seg.style.boxShadow = `0 0 5px ${tier.primary}`;
+        } else {
+          seg.style.background = '#1c1e26';
+          seg.style.boxShadow = 'none';
+        }
+      });
+
+      // Lateral WARM / HOT
+      const labelWarm = document.getElementById('labelWarm');
+      const labelHot = document.getElementById('labelHot');
+      if (tier.dbm <= -80) {
+        labelWarm.style.color = tier.primary;
+        labelHot.style.color = '#4b5563';
+        labelHot.style.textShadow = 'none';
+      } else if (tier.dbm >= -50) {
+        labelWarm.style.color = '#4b5563';
+        labelHot.style.color = tier.primary;
+        labelHot.style.textShadow = `0 0 8px ${tier.primary}`;
+      } else {
+        labelWarm.style.color = '#6b7280';
+        labelHot.style.color = tier.primary;
+        labelHot.style.textShadow = `0 0 6px ${tier.primary}`;
+      }
+
+      // Telemetry
+      document.getElementById('telPing').textContent = tier.ping;
+      document.getElementById('telLink').textContent = tier.link;
+      document.getElementById('telSnr').textContent = tier.snr;
+
+      // Haptic status readout
+      if (hapticActive) {
+        document.getElementById('hapticStatusText').textContent = `ACTIVE • ${tier.pulseHz}`;
+      }
+    }
+
+    // Interactive cycle through signal states on radar click/tap
+    const radarDial = document.getElementById('radarDial');
+    radarDial.addEventListener('click', () => {
+      currentTierIdx = (currentTierIdx + 1) % tiers.length;
+      applyTier(tiers[currentTierIdx]);
+      if (navigator.vibrate && hapticActive) {
+        navigator.vibrate(35);
+      }
+    });
+
+    // Toggle Haptic Switch
+    const hapticSwitch = document.getElementById('hapticSwitch');
+    hapticSwitch.addEventListener('click', (e) => {
+      e.stopPropagation();
+      hapticActive = !hapticActive;
+      const statusText = document.getElementById('hapticStatusText');
+      const pingRing = document.getElementById('pingRing');
+      const radarSweep = document.getElementById('radarSweep');
+      const hapticBar = document.getElementById('hapticBar');
+      const hapticDot = document.getElementById('hapticDot');
+
+      if (hapticActive) {
+        hapticSwitch.classList.remove('switch-off');
+        pingRing.style.display = 'block';
+        radarSweep.style.animationPlayState = 'running';
+        hapticBar.style.background = 'var(--tier-color)';
+        hapticDot.style.background = 'var(--tier-color)';
+        applyTier(tiers[currentTierIdx]);
+      } else {
+        hapticSwitch.classList.add('switch-off');
+        pingRing.style.display = 'none';
+        radarSweep.style.animationPlayState = 'paused';
+        statusText.textContent = 'STANDBY • MUTED';
+        statusText.style.color = '#6b7280';
+        hapticBar.style.background = '#4b5563';
+        hapticBar.style.boxShadow = 'none';
+        hapticDot.style.background = '#4b5563';
+      }
+    });
+
+    // Cycle Network Band (5G ULTRA -> LTE-ADV -> SUB-6)
+    const bandBtn = document.getElementById('bandBtn');
+    bandBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      currentBandIdx = (currentBandIdx + 1) % bands.length;
+      bandBtn.textContent = bands[currentBandIdx];
+    });
+
+    // Initial render
+    applyTier(tiers[currentTierIdx]);
+  </script>
+</body>
+</html>
+
